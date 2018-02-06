@@ -1,0 +1,13 @@
+position = "position"
+size = "size"
+background = "background"
+text = "text"
+children = "children"
+border = "border"
+input_ = "input"
+border_radius = "border-radius"
+
+type_ = "type"
+image = "image"
+body = "body"
+div = "div"

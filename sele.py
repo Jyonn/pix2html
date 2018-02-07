@@ -18,20 +18,23 @@ def get_tree(url):
             delete t.info.bottom;
             delete t.info.left;
             delete t.info.right;
-            if (!t.info.width || !t.info.height)
+            //if (!t.info.width || !t.info.height)
+            //    return null;
+            if (window.getComputedStyle(node)['visibility'] == 'hidden' || window.getComputedStyle(node)['display'] == 'none')
                 return null;
             var i = 0, childNodes = node.childNodes, item;
-            if (childNodes.length)
-                t.children = [];
+            t.children = [];
             for(; i < childNodes.length; i++) {
                 item = childNodes[i];
                 if (item.nodeType === 1) {
                     ct = traversal(item);
                     if (ct && ct.info.width && ct.info.height)
                         t.children.push(ct);
+                    else if (ct && ct.children)
+                        t.children = t.children.concat(ct.children);
                 }
             }
-            if (!t.children || !t.children.length)
+            if (!t.children.length)
                 delete t.children;
             else if (t.children.length == 1 && same_info(t.info, t.children[0].info))
                 return t.children[0];
@@ -46,7 +49,7 @@ def get_tree(url):
     tree_['url'] = url
     return tree_
 
-tree = get_tree('https://www.baidu.com')
+tree = get_tree('https://430060.com/ac/21')
 print(tree)
 
 html_eles = ""

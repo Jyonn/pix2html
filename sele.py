@@ -1,10 +1,11 @@
-from selenium import webdriver
+import json
+from common import fullpage_screenshot
 
 
-def get_tree(url):
-    driver = webdriver.Chrome()
+def get_tree(driver, url, filename):
     driver.get(url)
-    driver.implicitly_wait(5)
+    fullpage_screenshot(driver, 'dataset/%s.png' % filename)
+
     tree_ = driver.execute_script("""
     return (function () {
         function same_info(a, b) {
@@ -14,21 +15,23 @@ def get_tree(url):
         function traversal(node) {
             var t = {}, ct;
             t.info = node.getBoundingClientRect().toJSON();
+            t.info.tag = node.nodeName;
             delete t.info.top;
             delete t.info.bottom;
             delete t.info.left;
             delete t.info.right;
             //if (!t.info.width || !t.info.height)
             //    return null;
-            if (window.getComputedStyle(node)['visibility'] == 'hidden' || window.getComputedStyle(node)['display'] == 'none')
+            if (window.getComputedStyle(node)['visibility'] == 'hidden' || window.getComputedStyle(node)['display'] == 'none') {
                 return null;
+            }
             var i = 0, childNodes = node.childNodes, item;
             t.children = [];
             for(; i < childNodes.length; i++) {
                 item = childNodes[i];
                 if (item.nodeType === 1) {
                     ct = traversal(item);
-                    if (ct && ct.info.width && ct.info.height)
+                    if (ct && ct.info.width && ct.info.height && !same_info(t.info, ct.info))
                         t.children.push(ct);
                     else if (ct && ct.children)
                         t.children = t.children.concat(ct.children);
@@ -36,8 +39,10 @@ def get_tree(url):
             }
             if (!t.children.length)
                 delete t.children;
-            else if (t.children.length == 1 && same_info(t.info, t.children[0].info))
-                return t.children[0];
+            //else
+            //    for (i = 0; i < t.children.length; i++)
+            //        if (same_info(t.info, t.children[i].info))
+            //            return t.children = t.children;
             return t;
         }
     
@@ -45,40 +50,54 @@ def get_tree(url):
         return tree;
     })();
     """)
-    driver.quit()
     tree_['url'] = url
+    with open('dataset/%s.json' % filename, 'wb+') as f:
+        f.write(json.dumps(tree_).encode())
     return tree_
-
-tree = get_tree('https://430060.com/ac/21')
-print(tree)
-
-html_eles = ""
+#
+# tree = get_tree('https://www.baidu.com/more/')
+#
 
 
-def add_ele(d):
-    assert isinstance(d, dict)
-    global html_eles
-    info = d['info']
-    html_eles += '''  <div class="ele" style="top: %spx; left: %spx; width: %spx; height: %spx"></div>\n''' \
-                 % (info['y'], info['x'], info['width'], info['height'])
-    if 'children' in d.keys():
-        for item in d['children']:
-            add_ele(item)
+def get_html(tree, filename):
+    def add_ele(d):
+        assert isinstance(d, dict)
+        info = d['info']
+        html_eles = '''  <div class="ele %s" style="top: %spx; left: %spx; width: %spx; height: %spx"></div>\n''' \
+                     % (info['tag'], info['y'], info['x'], info['width'], info['height'])
+        if 'children' in d.keys():
+            for item in d['children']:
+                html_eles += add_ele(item)
+        return html_eles
 
-add_ele(tree)
+    html = add_ele(tree)
 
-html = """<html>
+    html_all = """<html>
 <head>
   <style>
     .ele {
       position: absolute;
       background-color: rgba(0, 0, 0, 0.1);
     }
+    .ele.IMG {
+      background-color: rgba(255, 0, 0, 0.1);
+    }
+    .ele.INPUT, .ele.TEXTAREA {
+      background-color: rgba(0, 255, 0, 0.1);
+    }
+    .ele.A {
+      background-color: rgba(0, 0, 255, 0.1);
+    }
+    .ele.BUTTON {
+      background-color: rgba(255, 255, 0, 0.1);
+    }
   </style>
 </head>
+<body>
 %s
+</body>
 </html>
-""" % html_eles
+    """ % html
 
-with open('sele.html', 'wb+') as f:
-    f.write(html.encode())
+    with open('dataset/%s.html' % filename, 'wb+') as f:
+        f.write(html_all.encode())

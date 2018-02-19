@@ -13,6 +13,8 @@ def grab_dict_baidu():
         words = f.readline()
     for index, w in enumerate(words):
         print(index, w)
+        if index < 20253:
+            continue
         filename = 'dictbd%s' % index
         tree = get_tree(driver, 'http://dict.baidu.com/s?%s' % urlencode({'wd': w}), filename)
         get_html(tree, filename)
